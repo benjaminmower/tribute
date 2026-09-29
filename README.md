@@ -68,9 +68,32 @@ first screen is a settings page"). The output is a service report, not a
 takedown. The goal is software that treats its users well — and a register
 that proves it.
 
+## How it's built
+
+One npm-workspaces monorepo in TypeScript. Five packages, thin but connected
+end to end: `rubric/` holds the scoring criteria, `packages/register/` the
+Zod-validated register, `packages/heuristics/` the cheap static signals,
+`packages/tuneup/` the agentic journey pipeline (Playwright drives a real
+Chrome session, Claude does the reviewing), and `extension/` the Manifest V3
+content script.
+
+Two constraints shaped the design. Manifest V3 forbids remote code, so the
+scoring *engine* ships as bundled code while everything meant to change daily
+stays declarative data. And a verdict about someone else's app needs a paper
+trail, so the repo is the database: every verdict has blame, history, and a
+review trail.
+
+How updates ship: PR merges → CI validates against the Zod schemas → promotes
+`register.json` + `signals.json` to the `dist` branch → jsDelivr serves them →
+every install picks them up within 24 hours.
+
+*Known gap, by design for now:* the register payload is protected by HTTPS and
+GitHub auth only. Post-alpha, the payload will be signed and installs will
+verify the signature before applying updates.
+
 ## For builders
 
-Ready to volunteer? [Request a Tune Up](https://github.com/goflypost/tribute/issues/new?template=tune-up-request.yml)
+Ready to volunteer? [Request a Tune Up](https://github.com/benjaminmower/tribute/issues/new?template=tune-up-request.yml)
 — one form: your app's URL and the core journey a first-time customer should
 be able to complete. Requests are worked in queue order, every report is
 human-signed before it ships, and the reviewer operates inside strict
@@ -86,42 +109,14 @@ re-Tune Up from the same form.
 
 Pre-alpha: a walking skeleton. Everything is thin but connected, end to end:
 
-1. **The rubric** — scoring criteria for the five stages (`rubric/`) ✓
-2. **The register** — Zod schema and seed data (`packages/register/`) ✓
-3. **Heuristics** — cheap static signals for unknown apps (`packages/heuristics/`) ✓
-4. **The Tune Up pipeline** — agentic journey testing (`packages/tuneup/`) ✓
-5. **The extension** — Show HN content script (`extension/`) ✓ — Product Hunt
-   and beyond later
+1. **The rubric** — scoring criteria for the five stages ✓
+2. **The register** — Zod schema and seed data ✓
+3. **Heuristics** — cheap static signals for unknown apps ✓
+4. **The Tune Up pipeline** — agentic journey testing ✓
+5. **The extension** — Show HN content script ✓ — Product Hunt and beyond later
 
 Next: run the inaugural cohort through the Tune Up and tighten the rubric on
 the variance.
-
-## Development
-
-One npm-workspaces monorepo. Node ≥ 22.
-
-```sh
-npm install
-npm run build      # heuristics → register → tuneup → extension
-npm test           # heuristics engine tests + extension typecheck
-npm run validate   # Zod-validates register.json and signals.json
-
-# Run a Tune Up (needs ANTHROPIC_API_KEY and Chrome installed)
-npm run tuneup -- https://example.app --name Example
-
-# Load the extension: chrome://extensions → Load unpacked → extension/dist
-```
-
-How updates ship: PR merges → CI validates against the Zod schemas → promotes
-`register.json` + `signals.json` to the `dist` branch → jsDelivr serves them →
-every install picks them up within 24 hours. The scoring *engine* is bundled
-code (Manifest V3 forbids remote code); everything meant to change daily is
-declarative data. The repo is the database: every verdict has blame, history,
-and a review trail.
-
-*Known gap (by design, for now):* the register payload is protected by HTTPS
-and GitHub auth only. Post-alpha, the payload will be signed and installs will
-verify the signature before applying updates.
 
 ### Inaugural cohort
 
@@ -135,10 +130,26 @@ rubric across very different journey shapes:
 - **hnwork.app** — a micro-utility, to prove the rubric scales down and
   doesn't punish simple apps for being simple
 
+## Development
+
+Node ≥ 22.
+
+```sh
+npm install
+npm run build      # heuristics → register → tuneup → extension
+npm test           # heuristics engine tests + extension typecheck
+npm run validate   # Zod-validates register.json and signals.json
+
+# Run a Tune Up (needs ANTHROPIC_API_KEY and Chrome installed)
+npm run tuneup -- https://example.app --name Example
+
+# Load the extension: chrome://extensions → Load unpacked → extension/dist
+```
+
 ## Contributing
 
 The untested-app arms race is only winnable together. Add heuristics, tune the
-rubric, report misclassifications, or [volunteer your own app as tribute](https://github.com/goflypost/tribute/issues/new?template=tune-up-request.yml).
+rubric, report misclassifications, or [volunteer your own app as tribute](https://github.com/benjaminmower/tribute/issues/new?template=tune-up-request.yml).
 Every fix ships to everyone.
 
 ## License
